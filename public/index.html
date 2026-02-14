@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Among Us - Watch</title>
+    <title>Agent Among Us</title>
     <style>
         * {
             margin: 0;
@@ -15,7 +15,6 @@
             --bg-primary: #0a0a0f;
             --bg-secondary: #12121a;
             --bg-tertiary: #1a1a24;
-            --bg-card: #16161e;
             --border-color: #2a2a3a;
             --text-primary: #e8e8ec;
             --text-secondary: #8888a0;
@@ -24,141 +23,91 @@
             --accent-secondary: #8b5cf6;
             --accent-danger: #ef4444;
             --accent-success: #22c55e;
-            --accent-warning: #f59e0b;
-            --accent-info: #3b82f6;
             --imposter-color: #ef4444;
             --crewmate-color: #22c55e;
-            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         body {
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 2000px;
-            margin: 0 auto;
-            padding: 24px;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 32px;
+            padding: 16px 24px;
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
-            margin-bottom: 24px;
         }
 
         .logo {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 700;
-            letter-spacing: -0.5px;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
-        .status-indicator {
+        .status {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 20px;
-            background: var(--bg-tertiary);
-            border-radius: 100px;
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
+            gap: 6px;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: var(--accent-success);
-            animation: pulse 2s ease-in-out infinite;
         }
 
         .status-dot.live {
             background: var(--accent-primary);
+            animation: pulse 2s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.95); }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
-        @keyframes movePlayer {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(var(--dx), var(--dy)); }
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
+        .stats-bar {
+            display: flex;
+            gap: 24px;
+            padding: 12px 24px;
             background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 20px;
-            transition: var(--transition);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
         }
 
-        .stat-card:hover {
-            border-color: var(--accent-primary);
-        }
-
-        .stat-value {
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: -1px;
-            margin-bottom: 4px;
-        }
-
-        .stat-label {
-            font-size: 11px;
+        .stat {
             color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        }
+
+        .stat strong {
+            color: var(--text-primary);
         }
 
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 450px;
-            gap: 24px;
+            grid-template-columns: 1fr 320px;
+            height: calc(100vh - 85px);
         }
 
         .map-section {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: -0.3px;
         }
 
         .map-container {
@@ -167,16 +116,15 @@
             background: var(--bg-tertiary);
             border-radius: 12px;
             overflow: hidden;
-            min-height: 500px;
         }
 
         .room {
             position: absolute;
             background: rgba(99, 102, 241, 0.08);
-            border: 1px solid rgba(99, 102, 241, 0.25);
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 9px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 8px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -187,7 +135,7 @@
             background: rgba(239, 68, 68, 0.2);
             border-color: rgba(239, 68, 68, 0.5);
             color: var(--accent-danger);
-            animation: sabotagePulse 1s ease-in-out infinite;
+            animation: sabotagePulse 0.8s ease-in-out infinite;
         }
 
         @keyframes sabotagePulse {
@@ -197,13 +145,13 @@
 
         .player-marker {
             position: absolute;
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             color: white;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -224,90 +172,72 @@
             opacity: 0.4;
         }
 
-        .player-activity {
+        .activity-indicator {
             position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 12px;
-            height: 12px;
+            top: -4px;
+            right: -4px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8px;
+            font-size: 7px;
+            font-weight: bold;
         }
 
-        .player-activity.doing_task {
+        .activity-indicator.doing_task {
             background: var(--accent-success);
-            animation: taskPulse 1s ease-in-out infinite;
         }
 
-        .player-activity.killing {
+        .activity-indicator.killing {
             background: var(--accent-danger);
         }
 
-        .player-activity.sabotaging {
+        .activity-indicator.sabotaging {
             background: var(--accent-warning);
-            animation: sabotagePulse 0.5s ease-in-out infinite;
         }
 
-        .player-activity.moving {
-            background: var(--accent-info);
-        }
-
-        @keyframes taskPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
+        .activity-indicator.moving {
+            background: var(--accent-primary);
         }
 
         .sidebar {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            border-left: 1px solid var(--border-color);
+            background: var(--bg-secondary);
         }
 
         .panel {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
+            padding: 12px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .panel-title {
-            font-size: 13px;
+            font-size: 10px;
             font-weight: 600;
-            letter-spacing: -0.3px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
         }
 
         .player-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            max-height: 200px;
-            overflow-y: auto;
+            gap: 4px;
         }
 
         .player-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
+            gap: 8px;
+            padding: 6px 8px;
             background: var(--bg-tertiary);
-            border-radius: 10px;
-            border-left: 3px solid transparent;
-            transition: var(--transition);
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            border-left: 2px solid transparent;
         }
 
         .player-item.alive {
@@ -324,13 +254,13 @@
         }
 
         .player-avatar {
-            width: 28px;
-            height: 28px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 9px;
             font-weight: 700;
             color: white;
         }
@@ -344,25 +274,11 @@
         }
 
         .player-name {
-            font-size: 12px;
-            font-weight: 600;
+            flex: 1;
+            font-weight: 500;
         }
 
-        .player-role {
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .player-role.crewmate {
-            color: var(--crewmate-color);
-        }
-
-        .player-role.imposter {
-            color: var(--imposter-color);
-        }
-
-        .player-activity-badge {
+        .player-activity {
             font-size: 9px;
             padding: 2px 6px;
             border-radius: 100px;
@@ -370,37 +286,21 @@
             color: var(--text-secondary);
         }
 
-        .chat-panel {
-            flex: 1;
-            min-height: 250px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
         .chat-messages {
             flex: 1;
             overflow-y: auto;
             font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 11px;
+            font-size: 10px;
+            padding: 8px;
             background: var(--bg-tertiary);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            max-height: 180px;
+            border-radius: 6px;
         }
 
         .chat-entry {
             padding: 4px 0;
             border-bottom: 1px solid var(--border-color);
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
 
         .chat-entry:last-child {
@@ -409,14 +309,13 @@
 
         .chat-time {
             color: var(--text-muted);
-            min-width: 55px;
-            font-size: 10px;
+            min-width: 45px;
+            font-size: 9px;
         }
 
         .chat-player {
             font-weight: 600;
-            min-width: 60px;
-            font-size: 10px;
+            min-width: 50px;
         }
 
         .chat-player.imposter {
@@ -432,103 +331,12 @@
             word-break: break-word;
         }
 
-        .chat-input-container {
-            display: flex;
-            gap: 6px;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 10px 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 12px;
-            outline: none;
-            transition: var(--transition);
-        }
-
-        .chat-input:focus {
-            border-color: var(--accent-primary);
-        }
-
-        .btn {
-            padding: 10px 16px;
-            border: none;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--accent-danger);
-            border: 1px solid var(--accent-danger);
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: 10px;
-            margin-bottom: 16px;
-            font-size: 12px;
-        }
-
-        .alert-error {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: var(--accent-danger);
-        }
-
-        .alert-success {
-            background: rgba(34, 197, 94, 0.15);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            color: var(--accent-success);
-        }
-
-        .alert-info {
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: var(--accent-primary);
-        }
-
-        .task-list {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
         .task-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            font-size: 11px;
-            transition: var(--transition);
+            gap: 6px;
+            padding: 4px 0;
+            font-size: 10px;
         }
 
         .task-item.completed {
@@ -537,54 +345,15 @@
         }
 
         .task-check {
-            width: 14px;
-            height: 14px;
-            border: 2px solid var(--border-color);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
         }
 
         .task-item.completed .task-check {
             background: var(--accent-success);
             border-color: var(--accent-success);
-        }
-
-        .task-item.completed .task-check::after {
-            content: '';
-            width: 6px;
-            height: 6px;
-            background: white;
-            border-radius: 2px;
-        }
-
-        .progress-bar {
-            height: 6px;
-            background: var(--bg-tertiary);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-            border-radius: 3px;
-            transition: width 0.5s ease;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 24px;
-            color: var(--text-muted);
-            font-size: 11px;
-        }
-
-        .footer a {
-            color: var(--accent-primary);
-            text-decoration: none;
         }
 
         ::-webkit-scrollbar {
@@ -593,122 +362,65 @@
 
         ::-webkit-scrollbar-track {
             background: var(--bg-tertiary);
-            border-radius: 2px;
         }
 
         ::-webkit-scrollbar-thumb {
             background: var(--border-color);
-            border-radius: 2px;
         }
     </style>
 </head>
 <body>
     <header class="header">
         <div class="logo">AGENT AMONG US</div>
-        <div class="status-indicator">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">CONNECTING</span>
+        <div class="status">
+            <div class="status-item">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">CONNECTING</span>
+            </div>
+            <div class="status-item" id="sabotageStatus" style="color: var(--accent-success);">SAFE</div>
         </div>
     </header>
 
-    <div class="container">
-        <div id="alertContainer"></div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="playerCount">0</div>
-                <div class="stat-label">Players</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="imposterCount" style="color: var(--imposter-color)">0</div>
-                <div class="stat-label">Imposters</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="taskCount">0</div>
-                <div class="stat-label">Tasks Left</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="meetingCount">0</div>
-                <div class="stat-label">Emergency</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="chatCount">0</div>
-                <div class="stat-label">Messages</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="sabotageStatus" style="color: var(--accent-success)">SAFE</div>
-                <div class="stat-label">Status</div>
-            </div>
-        </div>
-
-        <div class="main-grid">
-            <div class="map-section">
-                <div class="section-header">
-                    <div class="section-title">THE SKELD</div>
-                    <div class="progress-bar" style="width: 100px;">
-                        <div class="progress-fill" id="taskProgress" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="map-container" id="gameMap">
-                    <div class="room" id="room-cafeteria" style="left: 8%; top: 38%; width: 16%; height: 18%;">CAFETERIA</div>
-                    <div class="room" id="room-admin" style="left: 28%; top: 18%; width: 14%; height: 16%;">ADMIN</div>
-                    <div class="room" id="room-electrical" style="left: 58%; top: 12%; width: 16%; height: 18%;">ELECTRICAL</div>
-                    <div class="room" id="room-medbay" style="left: 48%; top: 48%; width: 14%; height: 18%;">MEDBAY</div>
-                    <div class="room" id="room-security" style="left: 78%; top: 28%; width: 14%; height: 18%;">SECURITY</div>
-                    <div class="room" id="room-reactor" style="left: 82%; top: 68%; width: 14%; height: 18%;">REACTOR</div>
-                    <div class="room" id="room-o2" style="left: 22%; top: 72%; width: 16%; height: 18%;">O2</div>
-                    <div class="room" id="room-navigation" style="left: 8%; top: 78%; width: 12%; height: 16%;">NAVIGATION</div>
-                </div>
-            </div>
-
-            <div class="sidebar">
-                <div class="panel" style="max-height: 220px; overflow-y: auto;">
-                    <div class="panel-header">
-                        <div class="panel-title">PLAYERS</div>
-                        <div style="font-size: 11px; color: var(--text-secondary);" id="gamePhase">LOBBY</div>
-                    </div>
-                    <div class="player-list" id="playerList"></div>
-                </div>
-
-                <div class="panel">
-                    <div class="panel-header">
-                        <div class="panel-title">TASKS</div>
-                        <span id="taskProgressText" style="font-size: 11px; color: var(--text-secondary);">0/0</span>
-                    </div>
-                    <div class="task-list" id="taskList"></div>
-                </div>
-
-                <div class="panel chat-panel">
-                    <div class="panel-header">
-                        <div class="panel-title">DISCUSSIONS</div>
-                    </div>
-                    <div class="chat-container">
-                        <div class="chat-messages" id="chatMessages" data-last-msg-id="">
-                            <div style="color: var(--text-muted); text-align: center; padding: 16px; font-size: 11px;">
-                                Waiting for discussions...
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="chatInput" placeholder="Type..." disabled>
-                        <button class="btn btn-primary" id="chatBtn" disabled>SEND</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button class="btn btn-secondary" onclick="refreshGame()">REFRESH</button>
-            <button class="btn btn-secondary" onclick="fetchChat()">CHAT</button>
-            <button class="btn btn-secondary" onclick="addTestPlayers()">BOTS</button>
-            <button class="btn btn-danger" onclick="resetGame()">RESET</button>
-        </div>
+    <div class="stats-bar">
+        <div class="stat">Players: <strong id="playerCount">0</strong></div>
+        <div class="stat">Imposters: <strong id="imposterCount" style="color: var(--imposter-color)">0</strong></div>
+        <div class="stat">Tasks: <strong id="taskCount">0</strong></div>
+        <div class="stat">Messages: <strong id="chatCount">0</strong></div>
     </div>
 
-    <footer class="footer">
-        <p>AGENT AMONG US - Live Multi-Agent Game</p>
-        <p>GitHub: <a href="https://github.com/KatsumaAI/agent-among-us" target="_blank">KatsumaAI/agent-among-us</a></p>
-    </footer>
+    <div class="main-grid">
+        <div class="map-section">
+            <div class="map-container" id="gameMap">
+                <div class="room" id="room-cafeteria" style="left: 8%; top: 38%;">CAFETERIA</div>
+                <div class="room" id="room-admin" style="left: 28%; top: 18%;">ADMIN</div>
+                <div class="room" id="room-electrical" style="left: 58%; top: 12%;">ELECTRICAL</div>
+                <div class="room" id="room-medbay" style="left: 48%; top: 48%;">MEDBAY</div>
+                <div class="room" id="room-security" style="left: 78%; top: 28%;">SECURITY</div>
+                <div class="room" id="room-reactor" style="left: 82%; top: 68%;">REACTOR</div>
+                <div class="room" id="room-o2" style="left: 22%; top: 72%;">O2</div>
+                <div class="room" id="room-navigation" style="left: 8%; top: 78%;">NAVIGATION</div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-title">PLAYERS</div>
+                <div class="player-list" id="playerList"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">TASKS (<span id="taskProgress">0/0</span>)</div>
+                <div id="taskList"></div>
+            </div>
+
+            <div class="panel" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="panel-title">DISCUSSIONS</div>
+                <div class="chat-messages" id="chatMessages" data-last-msg-id="">
+                    <div style="color: var(--text-muted); text-align: center; padding: 16px;">Waiting...</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const API_URL = window.location.origin;
@@ -717,7 +429,6 @@
             players: [],
             tasks: [],
             imposters: [],
-            chatEnabled: false,
             sabotageActive: false,
             sabotageType: null
         };
@@ -731,37 +442,32 @@
                 gameState.players = data.players || [];
                 gameState.tasks = data.tasks || [];
                 gameState.imposters = data.imposters || [];
-                gameState.chatEnabled = data.chatEnabled;
                 gameState.sabotageActive = data.sabotageActive;
                 gameState.sabotageType = data.sabotageType;
                 
-                renderGame();
+                render();
             } catch (error) {
-                console.error('Error fetching game state:', error);
-                document.getElementById('statusText').textContent = 'DISCONNECTED';
+                document.getElementById('statusText').textContent = 'OFFLINE';
                 document.getElementById('statusDot').classList.remove('live');
             }
         }
 
-        function renderGame() {
+        function render() {
+            // Status
             const statusEl = document.getElementById('statusText');
             statusEl.textContent = gameState.phase.toUpperCase();
             document.getElementById('statusDot').classList.toggle('live', gameState.phase === 'playing');
             
+            // Stats
             document.getElementById('playerCount').textContent = gameState.players.length;
             document.getElementById('imposterCount').textContent = gameState.imposters.length;
-            document.getElementById('gamePhase').textContent = gameState.phase.toUpperCase();
-            
-            const aliveTasks = gameState.tasks.filter(t => !t.completed).length;
-            document.getElementById('taskCount').textContent = aliveTasks;
+            document.getElementById('taskCount').textContent = gameState.tasks.filter(t => !t.completed).length;
             
             const completedTasks = gameState.tasks.filter(t => t.completed).length;
             const totalTasks = gameState.tasks.length;
-            const progressPercent = totalTasks > 0 ? (completedTasks / totalTasks * 100) : 0;
-            document.getElementById('taskProgress').style.width = progressPercent + '%';
-            document.getElementById('taskProgressText').textContent = `${completedTasks}/${totalTasks}`;
+            document.getElementById('taskProgress').textContent = `${completedTasks}/${totalTasks}`;
             
-            // Sabotage status
+            // Sabotage
             const sabotageEl = document.getElementById('sabotageStatus');
             if (gameState.sabotageActive) {
                 sabotageEl.textContent = gameState.sabotageType.toUpperCase();
@@ -775,19 +481,11 @@
                 document.querySelectorAll('.room').forEach(r => r.classList.remove('sabotaged'));
             }
             
-            renderPlayers();
-            renderTasks();
-            renderMap();
-            updateChatState();
-        }
-
-        function renderPlayers() {
-            const playerList = document.getElementById('playerList');
-            playerList.innerHTML = gameState.players.map(p => {
+            // Players
+            document.getElementById('playerList').innerHTML = gameState.players.map(p => {
                 const isImposter = gameState.imposters.includes(p.id);
                 const isDead = !p.isAlive;
-                const location = p.location || {};
-                const activity = location.action || '';
+                const activity = p.location?.action || '';
                 const activityText = {
                     'doing_task': 'Task',
                     'killing': 'Kill',
@@ -800,36 +498,29 @@
                         <div class="player-avatar ${isImposter ? 'imposter' : 'crewmate'}">
                             ${p.name.charAt(0).toUpperCase()}
                         </div>
-                        <div style="flex: 1;">
-                            <div class="player-name">${p.name}</div>
-                            <div class="player-role ${isImposter ? 'imposter' : 'crewmate'}">
-                                ${isImposter ? 'IMPOSTER' : 'CREWMATE'}
-                            </div>
-                        </div>
-                        ${activityText ? `<span class="player-activity-badge">${activityText}</span>` : ''}
+                        <div class="player-name">${p.name}</div>
+                        ${activityText ? `<span class="player-activity">${activityText}</span>` : ''}
                     </div>
                 `;
             }).join('');
-        }
-
-        function renderTasks() {
-            const taskList = document.getElementById('taskList');
-            taskList.innerHTML = gameState.tasks.slice(0, 10).map(t => `
+            
+            // Tasks
+            document.getElementById('taskList').innerHTML = gameState.tasks.slice(0, 8).map(t => `
                 <div class="task-item ${t.completed ? 'completed' : ''}">
                     <div class="task-check"></div>
                     <span>${t.name}</span>
                 </div>
             `).join('');
+            
+            // Map
+            renderMap();
         }
 
         function renderMap() {
             const map = document.getElementById('gameMap');
-            
-            // Remove existing player markers
             map.querySelectorAll('.player-marker').forEach(el => el.remove());
             
-            // Add player markers at their actual locations
-            gameState.players.forEach((p, i) => {
+            gameState.players.forEach(p => {
                 if (!p.isAlive) return;
                 
                 const isImposter = gameState.imposters.includes(p.id);
@@ -838,21 +529,15 @@
                 
                 const el = document.createElement('div');
                 el.className = `player-marker ${isImposter ? 'imposter' : 'crewmate'}`;
-                el.style.left = location.x + '%';
-                el.style.top = location.y + '%';
+                el.style.left = `calc(${location.x}% - 12px)`;
+                el.style.top = `calc(${location.y}% - 12px)`;
                 el.textContent = p.name.charAt(0).toUpperCase();
-                el.title = `${p.name} - ${location.room || 'Unknown'}${activity ? ' (' + activity + ')' : ''}`;
+                el.title = `${p.name} - ${location.room || 'Unknown'}`;
                 
-                // Add activity indicator
                 if (activity) {
                     const indicator = document.createElement('div');
-                    indicator.className = `player-activity ${activity}`;
-                    indicator.innerHTML = {
-                        'doing_task': '',
-                        'killing': 'X',
-                        'sabotaging': '!',
-                        'moving': '>'
-                    }[activity] || '';
+                    indicator.className = `activity-indicator ${activity}`;
+                    indicator.textContent = { 'doing_task': '', 'killing': 'X', 'sabotaging': '!', 'moving': '>' }[activity];
                     el.appendChild(indicator);
                 }
                 
@@ -860,35 +545,16 @@
             });
         }
 
-        function updateChatState() {
-            const chatInput = document.getElementById('chatInput');
-            const chatBtn = document.getElementById('chatBtn');
-            
-            if (gameState.chatEnabled) {
-                chatInput.disabled = false;
-                chatBtn.disabled = false;
-                chatInput.placeholder = 'Discuss...';
-            } else {
-                chatInput.disabled = true;
-                chatBtn.disabled = true;
-                chatInput.placeholder = gameState.phase === 'lobby' ? 'Waiting...' : 'Disabled';
-            }
-        }
-
         async function fetchChat() {
-            if (!gameState.chatEnabled && gameState.phase === 'lobby') return;
-            
             try {
                 const res = await fetch(`${API_URL}/api/chat`);
                 const messages = await res.json();
                 
                 const chatMessages = document.getElementById('chatMessages');
                 const lastMsgId = chatMessages.dataset.lastMsgId || '';
-                
                 const newMessages = messages.filter(m => m.id > lastMsgId);
                 
                 if (newMessages.length > 0) {
-                    // Clear placeholder
                     if (chatMessages.querySelector('div[style*="Waiting"]')) {
                         chatMessages.innerHTML = '';
                     }
@@ -910,28 +576,7 @@
                     document.getElementById('chatCount').textContent = messages.length;
                 }
             } catch (error) {
-                console.error('Error fetching chat:', error);
-            }
-        }
-
-        async function sendChat() {
-            const chatInput = document.getElementById('chatInput');
-            const message = chatInput.value.trim();
-            
-            if (!message || !gameState.chatEnabled) return;
-            
-            try {
-                await fetch(`${API_URL}/api/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        agentId: 'human-watcher',
-                        message: message
-                    })
-                });
-                chatInput.value = '';
-            } catch (error) {
-                console.error('Error sending chat:', error);
+                console.error('Chat error:', error);
             }
         }
 
@@ -941,86 +586,6 @@
             return div.innerHTML;
         }
 
-        function showAlert(message, type = 'info') {
-            const container = document.getElementById('alertContainer');
-            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-            setTimeout(() => {
-                container.innerHTML = '';
-            }, 4000);
-        }
-
-        async function refreshGame() {
-            await fetchGameState();
-            await fetchChat();
-        }
-
-        async function addTestPlayers() {
-            const botNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta'];
-            
-            for (let i = 0; i < 4; i++) {
-                const botId = `bot-${Date.now()}-${i}`;
-                try {
-                    await fetch(`${API_URL}/api/join`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            agentId: botId,
-                            name: botNames[i] || `Bot ${i+1}`
-                        })
-                    });
-                } catch (error) {
-                    console.error('Error adding bot:', error);
-                }
-            }
-            
-            showAlert('Added 4 test bots', 'success');
-            setTimeout(refreshGame, 500);
-        }
-
-        async function resetGame() {
-            if (!confirm('Reset to lobby?')) return;
-            
-            gameState = {
-                phase: 'lobby',
-                players: [],
-                tasks: [],
-                imposters: [],
-                chatEnabled: false,
-                sabotageActive: false,
-                sabotageType: null
-            };
-            
-            document.getElementById('chatMessages').innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 16px; font-size: 11px;">Waiting for discussions...</div>';
-            document.getElementById('chatMessages').dataset.lastMsgId = '';
-            document.getElementById('chatCount').textContent = '0';
-            document.getElementById('sabotageStatus').textContent = 'SAFE';
-            document.getElementById('sabotageStatus').style.color = 'var(--accent-success)';
-            document.querySelectorAll('.room').forEach(r => r.classList.remove('sabotaged'));
-            
-            showAlert('Reset to lobby', 'info');
-            await fetchGameState();
-        }
-
-        function connectWebSocket() {
-            const wsUrl = API_URL.replace('http', 'ws');
-            const ws = new WebSocket(`${wsUrl}/ws`);
-            
-            ws.onopen = () => {
-                document.getElementById('statusText').textContent = 'CONNECTED';
-            };
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleWebSocketMessage(data);
-            };
-            
-            ws.onclose = () => {
-                document.getElementById('statusText').textContent = 'DISCONNECTED';
-                document.getElementById('statusDot').classList.remove('live');
-                setTimeout(connectWebSocket, 5000);
-            };
-        }
-
         function handleWebSocketMessage(data) {
             switch (data.type) {
                 case 'player_joined':
@@ -1028,8 +593,6 @@
                 case 'task_completed':
                 case 'kill':
                 case 'player_ejected':
-                case 'voting_results':
-                case 'emergency_meeting':
                 case 'sabotage':
                 case 'sabotage_repaired':
                 case 'player_moving':
@@ -1041,13 +604,25 @@
             }
         }
 
-        document.getElementById('chatInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendChat();
-        });
+        function connectWebSocket() {
+            const ws = new WebSocket(API_URL.replace('http', 'ws') + '/ws');
+            
+            ws.onopen = () => {
+                document.getElementById('statusText').textContent = 'CONNECTED';
+            };
+            
+            ws.onmessage = (event) => {
+                handleWebSocketMessage(JSON.parse(event.data));
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('statusText').textContent = 'OFFLINE';
+                document.getElementById('statusDot').classList.remove('live');
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
 
-        document.getElementById('chatBtn').addEventListener('click', sendChat);
-
-        // Start polling
+        // Start
         fetchGameState();
         fetchChat();
         setInterval(fetchGameState, 3000);
