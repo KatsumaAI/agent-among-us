@@ -14,22 +14,24 @@ app.use(express.static(path.join(__dirname, '../public')));
 const CONFIG = {
     IMPOSTER_COUNT: (players) => Math.max(1, Math.floor(players / 3)),
     TASK_COUNT: 20,
-    KILL_COOLDOWN: 15000, // 15 seconds
-    SABOTAGE_COOLDOWN: 30000, // 30 seconds
-    VOTE_TIME: 10000, // 10 seconds
+    KILL_COOLDOWN: 15000,
+    SABOTAGE_COOLDOWN: 30000,
+    VOTE_TIME: 15000,
+    CHAT_ENABLED: true
 };
 
 // Game State
 const gameState = {
-    phase: 'lobby', // lobby, playing, voting, ended
-    players: new Map(), // id -> { id, name, role, isAlive, ws, lastKill }
+    phase: 'lobby',
+    players: new Map(),
     imposters: [],
     tasks: [],
     votes: {},
     emergencyMeetings: 0,
     meetingActive: false,
     sabotageActive: false,
-    map: 'skeld'
+    chat: [], // Chat messages
+    chatEnabled: true
 };
 
 // Task Definitions
@@ -41,7 +43,6 @@ const TASK_DEFINITIONS = [
     'Reset Seismic', 'Align Telescope', 'Make Burger', 'Assemble Artifact'
 ];
 
-// Initialize Tasks
 function initializeTasks() {
     gameState.tasks = TASK_DEFINITIONS.slice(0, CONFIG.TASK_COUNT).map((name, i) => ({
         id: i,
@@ -51,14 +52,13 @@ function initializeTasks() {
     }));
 }
 
-// Routes
-
 // Health check
 app.get('/', (req, res) => {
     res.json({
         status: 'running',
         phase: gameState.phase,
         players: gameState.players.size,
+        chatEnabled: gameState.chatEnabled,
         timestamp: new Date().toISOString()
     });
 });
@@ -67,20 +67,23 @@ app.get('/', (req, res) => {
 app.get('/api', (req, res) => {
     res.json({
         name: 'Agent Among Us API',
-        version: '1.0.0',
+        version: '2.0.0',
         endpoints: {
             'GET /': 'Health check',
-            'GET /api/game': 'Get full game state',
-            'GET /api/players': 'List all players',
-            'GET /api/tasks': 'List all tasks',
-            'GET /api/map': 'Get map data',
+            'GET /api/game': 'Full game state',
+            'GET /api/players': 'List players',
+            'GET /api/tasks': 'List tasks',
+            'GET /api/map': 'Map data',
+            'GET /api/chat': 'Get chat messages',
             'POST /api/join': 'Join game',
             'POST /api/start': 'Start game',
+            'POST /api/chat': 'Send chat message',
             'POST /api/vote': 'Submit vote',
-            'POST /api/complete_task': 'Complete a task',
-            'POST /api/kill': 'Imposter kill (requires imposter role)',
+            'POST /api/complete_task': 'Complete task',
+            'POST /api/kill': 'Imposter kill',
             'POST /api/sabotage': 'Trigger sabotage',
-            'POST /api/repair': 'Repair sabotage'
+            'POST /api/repair': 'Repair sabotage',
+            'POST /api/emergency': 'Call meeting'
         }
     });
 });
@@ -97,12 +100,14 @@ app.get('/api/game', (req, res) => {
         })),
         tasks: gameState.tasks,
         imposters: gameState.imposters,
+        chatEnabled: gameState.chatEnabled,
         stats: {
             totalPlayers: gameState.players.size,
             alivePlayers: Array.from(gameState.players.values()).filter(p => p.isAlive).length,
             aliveImposters: gameState.imposters.filter(id => gameState.players.get(id)?.isAlive).length,
             completedTasks: gameState.tasks.filter(t => t.completed).length,
-            totalTasks: gameState.tasks.length
+            totalTasks: gameState.tasks.length,
+            chatMessages: gameState.chat.length
         }
     });
 });
@@ -128,16 +133,23 @@ app.get('/api/map', (req, res) => {
     res.json({
         name: 'The Skeld',
         rooms: [
-            { id: 'cafeteria', name: 'Cafeteria', x: 10, y: 40, width: 15, height: 20 },
-            { id: 'admin', name: 'Admin', x: 30, y: 20, width: 12, height: 15 },
-            { id: 'electrical', name: 'Electrical', x: 60, y: 15, width: 15, height: 20 },
-            { id: 'medbay', name: 'MedBay', x: 50, y: 50, width: 12, height: 18 },
-            { id: 'security', name: 'Security', x: 80, y: 30, width: 12, height: 18 },
-            { id: 'reactor', name: 'Reactor', x: 85, y: 70, width: 12, height: 18 },
-            { id: 'o2', name: 'O2', x: 25, y: 75, width: 15, height: 18 },
-            { id: 'navigation', name: 'Navigation', x: 10, y: 80, width: 12, height: 15 }
+            { id: 'cafeteria', name: 'CAFETERIA', x: 10, y: 40, width: 15, height: 20 },
+            { id: 'admin', name: 'ADMIN', x: 28, y: 20, width: 14, height: 16 },
+            { id: 'electrical', name: 'ELECTRICAL', x: 58, y: 12, width: 16, height: 18 },
+            { id: 'medbay', name: 'MEDBAY', x: 48, y: 48, width: 14, height: 18 },
+            { id: 'security', name: 'SECURITY', x: 78, y: 28, width: 14, height: 18 },
+            { id: 'reactor', name: 'REACTOR', x: 82, y: 68, width: 14, height: 18 },
+            { id: 'o2', name: 'O2', x: 22, y: 72, width: 16, height: 18 },
+            { id: 'navigation', name: 'NAVIGATION', x: 8, y: 78, width: 12, height: 16 }
         ]
     });
+});
+
+// Get chat messages
+app.get('/api/chat', (req, res) => {
+    const { limit } = req.query;
+    const messages = limit ? gameState.chat.slice(-parseInt(limit)) : gameState.chat;
+    res.json(messages);
 });
 
 // Join game
@@ -149,7 +161,7 @@ app.post('/api/join', (req, res) => {
     }
     
     if (gameState.phase !== 'lobby') {
-        return res.status(400).json({ success: false, message: 'Game already in progress' });
+        return res.status(400).json({ success: false, message: 'Game in progress' });
     }
     
     if (gameState.players.has(agentId)) {
@@ -169,11 +181,58 @@ app.post('/api/join', (req, res) => {
     gameState.players.set(agentId, player);
     broadcast({
         type: 'player_joined',
-        player: { id: player.id, name: player.name, role: player.role, isAlive: player.isAlive }
+        player: { id: player.id, name: player.name }
+    }, player.id);
+    
+    console.log(`[JOIN] ${player.name} (${player.id})`);
+    res.json({ success: true, player });
+});
+
+// Send chat message
+app.post('/api/chat', (req, res) => {
+    const { agentId, message } = req.body;
+    
+    if (!gameState.chatEnabled) {
+        return res.status(400).json({ success: false, message: 'Chat disabled' });
+    }
+    
+    if (!message || message.trim().length === 0) {
+        return res.status(400).json({ success: false, message: 'Message required' });
+    }
+    
+    if (message.length > 500) {
+        return res.status(400).json({ success: false, message: 'Message too long' });
+    }
+    
+    const player = gameState.players.get(agentId);
+    if (!player || !player.isAlive) {
+        return res.status(400).json({ success: false, message: 'Player not found or dead' });
+    }
+    
+    const chatMessage = {
+        id: uuidv4(),
+        playerId: agentId,
+        playerName: player.name,
+        role: player.role,
+        message: message.trim().substring(0, 500),
+        timestamp: new Date().toISOString(),
+        phase: gameState.phase
+    };
+    
+    gameState.chat.push(chatMessage);
+    
+    // Keep only last 100 messages
+    if (gameState.chat.length > 100) {
+        gameState.chat = gameState.chat.slice(-100);
+    }
+    
+    broadcast({
+        type: 'chat_message',
+        message: chatMessage
     });
     
-    console.log("[GAME] Player joined: ${player.name} (${player.id})`);
-    res.json({ success: true, player });
+    console.log(`[CHAT] ${player.name}: ${message.substring(0, 100)}`);
+    res.json({ success: true, message: chatMessage });
 });
 
 // Start game
@@ -181,21 +240,19 @@ app.post('/api/start', (req, res) => {
     const playerCount = gameState.players.size;
     
     if (playerCount < 4) {
-        return res.status(400).json({ success: false, message: 'Need 4+ players to start' });
+        return res.status(400).json({ success: false, message: 'Need 4+ players' });
     }
     
-    // Reset game state
     initializeTasks();
     gameState.votes = {};
+    gameState.chat = [];
     gameState.emergencyMeetings = Math.floor(playerCount / 2) + 1;
     gameState.meetingActive = false;
     gameState.sabotageActive = false;
     
-    // Assign roles
     const players = Array.from(gameState.players.values());
     const imposterCount = CONFIG.IMPOSTER_COUNT(playerCount);
     
-    // Shuffle and assign
     const shuffled = players.sort(() => Math.random() - 0.5);
     gameState.imposters = shuffled.slice(0, imposterCount).map(p => p.id);
     
@@ -207,20 +264,20 @@ app.post('/api/start', (req, res) => {
     
     gameState.phase = 'playing';
     
-    console.log("[GAME] Game started Imposters: ${gameState.imposters.join(', ')}`);
-    
     broadcast({
         type: 'game_started',
         imposters: gameState.imposters,
         crewmates: players.filter(p => !gameState.imposters.includes(p.id)).map(p => p.id),
         tasks: gameState.tasks,
         meetingCount: gameState.emergencyMeetings
-    });
+    }, null, true);
+    
+    console.log(`[GAME] Started with ${imposterCount} imposter(s)`);
     
     res.json({ 
         success: true, 
         role: players[0].role,
-        message: `You are a ${players[0].role.toUpperCase()}!`
+        message: `You are a ${players[0].role.toUpperCase()}`
     });
 });
 
@@ -250,10 +307,9 @@ app.post('/api/vote', (req, res) => {
     broadcast({
         type: 'vote_received',
         voter: agentId,
-        target: targetId,
-        voteCount: Object.keys(gameState.votes).length,
-        totalVotes: Array.from(gameState.players.values()).filter(p => p.isAlive).length
-    });
+        voterName: player.name,
+        target: targetId
+    }, null, true);
     
     res.json({ success: true });
     
@@ -275,7 +331,7 @@ app.post('/api/complete_task', (req, res) => {
     
     const task = gameState.tasks.find(t => t.id === taskId);
     if (!task || task.completed) {
-        return res.status(400).json({ success: false, message: 'Task not found or already completed' });
+        return res.status(400).json({ success: false, message: 'Task not found or completed' });
     }
     
     task.completed = true;
@@ -287,13 +343,13 @@ app.post('/api/complete_task', (req, res) => {
         taskId,
         taskName: task.name,
         player: agentId,
+        playerName: player.name,
         completed: gameState.tasks.filter(t => t.completed).length,
         total: gameState.tasks.length
-    });
+    }, null, true);
     
-    console.log("[TASK]  ${task.name} by ${player.name}`);
+    console.log(`[TASK] ${task.name} completed by ${player.name}`);
     
-    // Check win condition
     if (gameState.tasks.every(t => t.completed)) {
         endGame('crewmates');
     }
@@ -333,13 +389,13 @@ app.post('/api/kill', (req, res) => {
     broadcast({
         type: 'kill',
         killer: agentId,
+        killerName: player.name,
         victim: targetId,
         victimName: target.name
-    });
+    }, null, true);
     
-    console.log("[KILL]  ${target.name} was killed by an imposter`);
+    console.log(`[KILL] ${player.name} eliminated ${target.name}`);
     
-    // Check win condition
     const aliveImposters = gameState.imposters.filter(id => gameState.players.get(id)?.isAlive).length;
     const aliveCrewmates = Array.from(gameState.players.values()).filter(p => p.isAlive && p.role === 'crewmate').length;
     
@@ -350,12 +406,12 @@ app.post('/api/kill', (req, res) => {
     res.json({ success: true });
 });
 
-// Trigger sabotage
+// Sabotage
 app.post('/api/sabotage', (req, res) => {
     const { agentId } = req.body;
     
     if (gameState.phase !== 'playing' || gameState.sabotageActive) {
-        return res.status(400).json({ success: false, message: 'Cannot sabotage now' });
+        return res.status(400).json({ success: false, message: 'Cannot sabotage' });
     }
     
     const player = gameState.players.get(agentId);
@@ -369,10 +425,11 @@ app.post('/api/sabotage', (req, res) => {
     broadcast({
         type: 'sabotage',
         sabotageType: gameState.sabotageType,
+        sabotagePlayer: player.name,
         timeRemaining: CONFIG.SABOTAGE_COOLDOWN / 1000
-    });
+    }, null, true);
     
-    console.log("[SABOTAGE]  ${gameState.sabotageType}`);
+    console.log(`[SABOTAGE] ${player.name} triggered ${gameState.sabotageType}`);
     
     res.json({ success: true, sabotageType: gameState.sabotageType });
 });
@@ -382,7 +439,7 @@ app.post('/api/repair', (req, res) => {
     const { agentId } = req.body;
     
     if (!gameState.sabotageActive) {
-        return res.status(400).json({ success: false, message: 'No sabotage active' });
+        return res.status(400).json({ success: false, message: 'No sabotage' });
     }
     
     const player = gameState.players.get(agentId);
@@ -394,14 +451,15 @@ app.post('/api/repair', (req, res) => {
     
     broadcast({
         type: 'sabotage_repaired',
-        repairedBy: agentId
-    });
+        repairedBy: agentId,
+        repairedByName: player.name
+    }, null, true);
     
-    console.log("[SABOTAGE] Repaired by ${player.name}`);
+    console.log(`[SABOTAGE] ${player.name} repaired`);
     res.json({ success: true });
 });
 
-// Trigger emergency meeting
+// Emergency meeting
 app.post('/api/emergency', (req, res) => {
     const { agentId } = req.body;
     
@@ -415,7 +473,7 @@ app.post('/api/emergency', (req, res) => {
     }
     
     if (gameState.emergencyMeetings <= 0) {
-        return res.status(400).json({ success: false, message: 'No emergency meetings left' });
+        return res.status(400).json({ success: false, message: 'No meetings left' });
     }
     
     gameState.emergencyMeetings--;
@@ -425,13 +483,13 @@ app.post('/api/emergency', (req, res) => {
     broadcast({
         type: 'emergency_meeting',
         calledBy: agentId,
+        calledByName: player.name,
         meetingsRemaining: gameState.emergencyMeetings,
         voteTime: CONFIG.VOTE_TIME / 1000
-    });
+    }, null, true);
     
-    console.log(`Emergency meeting called by ${player.name}`);
+    console.log(`[VOTE] Emergency meeting called by ${player.name}`);
     
-    // Auto-end voting after timeout
     setTimeout(() => {
         if (gameState.meetingActive) {
             processVoting();
@@ -456,7 +514,8 @@ wss.on('connection', (ws) => {
                         gameState: {
                             phase: gameState.phase,
                             imposters: gameState.imposters,
-                            tasks: gameState.tasks
+                            tasks: gameState.tasks,
+                            chatEnabled: gameState.chatEnabled
                         }
                     }));
                 }
@@ -467,11 +526,10 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Helper functions
-function broadcast(data) {
+function broadcast(data, excludeId = null, includeChat = false) {
     const msg = JSON.stringify(data);
-    gameState.players.forEach(p => {
-        if (p.ws && p.ws.readyState === WebSocket.OPEN) {
+    gameState.players.forEach((p, id) => {
+        if (id !== excludeId && p.ws && p.ws.readyState === WebSocket.OPEN) {
             p.ws.send(msg);
         }
     });
@@ -501,8 +559,9 @@ function processVoting() {
         type: 'voting_results',
         votes,
         ejected,
-        tied
-    });
+        tied,
+        ejectedName: ejected ? gameState.players.get(ejected)?.name : null
+    }, null, true);
     
     if (ejected) {
         const player = gameState.players.get(ejected);
@@ -512,10 +571,9 @@ function processVoting() {
                 type: 'player_ejected',
                 player: ejected,
                 playerName: player.name
-            });
-            console.log("[VOTE] Ejected:  ${player.name}`);
+            }, null, true);
+            console.log(`[VOTE] ${player.name} was ejected`);
             
-            // Check win conditions
             const aliveImposters = gameState.imposters.filter(id => gameState.players.get(id)?.isAlive).length;
             const aliveCrewmates = Array.from(gameState.players.values()).filter(p => p.isAlive && p.role === 'crewmate').length;
             
@@ -526,7 +584,7 @@ function processVoting() {
             }
         }
     } else {
-        console.log('Vote tied - no one ejected');
+        console.log('[VOTE] Tie - no ejection');
     }
     
     gameState.meetingActive = false;
@@ -540,23 +598,23 @@ function endGame(winner) {
     const results = {
         type: 'game_ended',
         winner,
+        winnerName: winner === 'imposters' ? 'IMPOSTERS' : 'CREWMATES',
         imposters: gameState.imposters,
         crewmates: Array.from(gameState.players.values()).filter(p => p.role === 'crewmate').map(p => p.id),
         stats: {
             totalPlayers: gameState.players.size,
             tasksCompleted: gameState.tasks.filter(t => t.completed).length,
-            totalTasks: gameState.tasks.length
+            totalTasks: gameState.tasks.length,
+            chatMessages: gameState.chat.length
         }
     };
     
-    broadcast(results);
-    console.log("[GAME] Game over: Winner: ${winner}`);
+    broadcast(results, null, true);
+    console.log(`[GAME] Over - ${winner.toUpperCase()} win`);
 }
 
-// Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Agent Among Us running on port ${PORT}`);
-    console.log(`Web interface: http://localhost:${PORT}`);
-});
+    console.log(`[SERVER] Agent Among Us running on port ${PORT}`);
+    console.log(`[WEB] Interface: http://localhost:${PORT}`);
 });
