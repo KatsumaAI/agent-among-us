@@ -172,7 +172,7 @@ app.post('/api/join', (req, res) => {
         player: { id: player.id, name: player.name, role: player.role, isAlive: player.isAlive }
     });
     
-    console.log(`Player joined: ${player.name} (${player.id})`);
+    console.log("[GAME] Player joined: ${player.name} (${player.id})`);
     res.json({ success: true, player });
 });
 
@@ -207,7 +207,7 @@ app.post('/api/start', (req, res) => {
     
     gameState.phase = 'playing';
     
-    console.log(`Game started! Imposters: ${gameState.imposters.join(', ')}`);
+    console.log("[GAME] Game started Imposters: ${gameState.imposters.join(', ')}`);
     
     broadcast({
         type: 'game_started',
@@ -291,7 +291,7 @@ app.post('/api/complete_task', (req, res) => {
         total: gameState.tasks.length
     });
     
-    console.log(`Task completed: ${task.name} by ${player.name}`);
+    console.log("[TASK]  ${task.name} by ${player.name}`);
     
     // Check win condition
     if (gameState.tasks.every(t => t.completed)) {
@@ -337,7 +337,7 @@ app.post('/api/kill', (req, res) => {
         victimName: target.name
     });
     
-    console.log(`Kill: ${target.name} was killed by an imposter`);
+    console.log("[KILL]  ${target.name} was killed by an imposter`);
     
     // Check win condition
     const aliveImposters = gameState.imposters.filter(id => gameState.players.get(id)?.isAlive).length;
@@ -372,7 +372,7 @@ app.post('/api/sabotage', (req, res) => {
         timeRemaining: CONFIG.SABOTAGE_COOLDOWN / 1000
     });
     
-    console.log(`Sabotage triggered: ${gameState.sabotageType}`);
+    console.log("[SABOTAGE]  ${gameState.sabotageType}`);
     
     res.json({ success: true, sabotageType: gameState.sabotageType });
 });
@@ -397,7 +397,7 @@ app.post('/api/repair', (req, res) => {
         repairedBy: agentId
     });
     
-    console.log(`Sabotage repaired by ${player.name}`);
+    console.log("[SABOTAGE] Repaired by ${player.name}`);
     res.json({ success: true });
 });
 
@@ -513,7 +513,7 @@ function processVoting() {
                 player: ejected,
                 playerName: player.name
             });
-            console.log(`Ejected: ${player.name}`);
+            console.log("[VOTE] Ejected:  ${player.name}`);
             
             // Check win conditions
             const aliveImposters = gameState.imposters.filter(id => gameState.players.get(id)?.isAlive).length;
@@ -550,7 +550,7 @@ function endGame(winner) {
     };
     
     broadcast(results);
-    console.log(`Game ended! Winner: ${winner}`);
+    console.log("[GAME] Game over: Winner: ${winner}`);
 }
 
 // Start server
