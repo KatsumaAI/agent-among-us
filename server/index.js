@@ -239,8 +239,8 @@ app.post('/api/chat', (req, res) => {
 app.post('/api/start', (req, res) => {
     const playerCount = gameState.players.size;
     
-    if (playerCount < 4) {
-        return res.status(400).json({ success: false, message: 'Need 4+ players' });
+    if (playerCount < 4 && !process.env.DEMO_MODE) {
+        return res.status(400).json({ success: false, message: 'Need 4+ players (or set DEMO_MODE=1)' });
     }
     
     initializeTasks();

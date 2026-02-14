@@ -316,7 +316,6 @@
             color: var(--imposter-color);
         }
 
-        /* Chat Panel */
         .chat-panel {
             flex: 1;
             min-height: 300px;
@@ -434,10 +433,47 @@
             border-color: var(--accent-primary);
         }
 
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-danger);
+            border: 1px solid var(--accent-danger);
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-danger);
+            color: white;
+        }
+
         .controls {
             display: flex;
             gap: 12px;
             margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--accent-danger);
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--accent-success);
+        }
+
+        .alert-info {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: var(--accent-primary);
         }
 
         .footer {
@@ -488,6 +524,12 @@
             border-radius: 2px;
             transition: width 0.5s ease;
         }
+
+        .player-count-warning {
+            color: var(--accent-warning);
+            font-size: 12px;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -500,10 +542,13 @@
     </header>
 
     <div class="container">
+        <div id="alertContainer"></div>
+
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value" id="playerCount">0</div>
                 <div class="stat-label">Players</div>
+                <div class="player-count-warning" id="playerWarning"></div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="imposterCount" style="color: var(--imposter-color)">0</div>
@@ -571,6 +616,8 @@
         <div class="controls">
             <button class="btn btn-secondary" onclick="refreshGame()">REFRESH</button>
             <button class="btn btn-primary" onclick="startGame()" id="startBtn">START GAME</button>
+            <button class="btn btn-secondary" onclick="addTestPlayers()" id="testBtn">ADD BOTS</button>
+            <button class="btn btn-danger" onclick="resetGame()" id="resetBtn">RESET</button>
         </div>
     </div>
 
@@ -605,6 +652,7 @@
                 console.error('Error fetching game state:', error);
                 document.getElementById('statusText').textContent = 'DISCONNECTED';
                 document.getElementById('statusDot').classList.remove('live');
+                showAlert('Cannot connect to server', 'error');
             }
         }
 
@@ -618,8 +666,18 @@
             document.getElementById('taskCount').textContent = gameState.tasks.filter(t => !t.completed).length;
             document.getElementById('gamePhase').textContent = gameState.phase.toUpperCase();
             
-            const completedTasks = gameState.tasks.filter(t => t.completed).length;
-            const totalTasks = gameState.tasks.length;
+            // Show player count warning
+            const playerWarning = document.getElementById('playerWarning');
+            if (gameState.phase === 'lobby') {
+                if (gameState.players.length < 4) {
+                    playerWarning.textContent = `Need ${4 - gameState.players.length} more to start`;
+                } else {
+                    playerWarning.textContent = 'Ready to start!';
+                    playerWarning.style.color = 'var(--accent-success)';
+                }
+            } else {
+                playerWarning.textContent = '';
+            }
             
             // Render players
             const playerList = document.getElementById('playerList');
@@ -664,7 +722,6 @@
         }
 
         function updateChatState() {
-            const chatMessages = document.getElementById('chatMessages');
             const chatInput = document.getElementById('chatInput');
             const chatBtn = document.getElementById('chatBtn');
             
@@ -724,6 +781,14 @@
             return div.innerHTML;
         }
 
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
         async function refreshGame() {
             await fetchGameState();
         }
@@ -733,11 +798,54 @@
                 const res = await fetch(`${API_URL}/api/start`, { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
+                    showAlert(data.message, 'success');
                     await fetchGameState();
+                } else {
+                    showAlert(data.message, 'error');
                 }
             } catch (error) {
-                console.error('Error starting game:', error);
+                showAlert('Failed to start game', 'error');
             }
+        }
+
+        async function addTestPlayers() {
+            const botNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta'];
+            
+            for (let i = 0; i < 4; i++) {
+                const botId = `bot-${Date.now()}-${i}`;
+                try {
+                    await fetch(`${API_URL}/api/join`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            agentId: botId,
+                            name: botNames[i] || `Bot ${i+1}`
+                        })
+                    });
+                } catch (error) {
+                    console.error('Error adding bot:', error);
+                }
+            }
+            
+            showAlert('Added 4 test bots', 'success');
+            setTimeout(refreshGame, 500);
+        }
+
+        async function resetGame() {
+            if (!confirm('Reset game to lobby?')) return;
+            
+            gameState = {
+                phase: 'lobby',
+                players: [],
+                tasks: [],
+                imposters: [],
+                chatEnabled: false
+            };
+            
+            document.getElementById('chatMessages').innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Chat disabled in lobby</div>';
+            document.getElementById('chatCount').textContent = '0';
+            showAlert('Game reset to lobby', 'info');
+            await fetchGameState();
         }
 
         function connectWebSocket() {
